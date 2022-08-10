@@ -3,6 +3,7 @@ import { toast, ToastContainer } from "react-toastify";
 import io from "socket.io-client";
 import ConnectedUsers from "./components/ConnectedUsers/ConnectedUsers";
 import EnterUsername from "./components/EnterUsername";
+import Messages from "./components/Messages/Messages";
 
 function App() {
   const [connected, setConnected] = useState(false);
@@ -14,6 +15,8 @@ function App() {
     [] as { message: string; username: string }[]
   );
   const [message, setMessage] = useState("");
+
+  // ---------------------------------------------------------------
 
   const socketClient = useRef<SocketIOClient.Socket>();
 
@@ -45,7 +48,16 @@ function App() {
         }
       );
     }
+
+    return () => {
+      if (socketClient.current) {
+        socketClient.current.disconnect();
+        socketClient.current = undefined;
+      }
+    };
   }, [username]);
+
+  // ---------------------------------------------------------------
 
   const handleConnection = () => {
     if (socketClient.current) {
@@ -54,8 +66,14 @@ function App() {
   };
 
   const handleSendMessage = () => {
-    
-  }
+    if (socketClient.current) {
+      setMessages((prev) => [...prev, { message, username }]);
+      socketClient.current.emit("message", { message, username });
+      setMessage("");
+    }
+  };
+
+  // --------------------------------------------------------------
 
   return (
     <div className="app">
@@ -70,6 +88,14 @@ function App() {
       {connected && (
         <>
           <ConnectedUsers ConnectedUsers={connectedUsers} />
+
+          <Messages
+            message={message}
+            setMessage={setMessage}
+            messages={messages}
+            username={username}
+            handleSendMessage={handleSendMessage}
+          />
         </>
       )}
       <ToastContainer position="bottom-right" />
